@@ -90,11 +90,15 @@ export interface RiskAssessment {
 
 export interface Grievance {
   id: string;
+  trackingId?: string;
   projectId: string;
   citizenId: string;
-  category: 'NOISE' | 'TRAFFIC' | 'ENVIRONMENT' | 'OTHER';
+  citizenName?: string;
+  contactInfo?: string;
+  category: 'NOISE' | 'TRAFFIC' | 'ENVIRONMENT' | 'ROAD_ACCESS' | 'QUALITY' | 'OTHER' | string;
   description: string;
   status: 'OPEN' | 'IN_REVIEW' | 'RESOLVED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
   timestamp: Date;
 }
 
@@ -122,7 +126,20 @@ export interface AuditEvent {
   userId: string;
   action: string;
   entityId: string;
+  details?: string;
   oldValue?: any;
   newValue?: any;
   timestamp: Date;
 }
+
+export interface RecoveryPlan {
+  id: string;
+  activityId: string;
+  contractorId: string;
+  proposedRecoveryDays: number;
+  resourceChanges: string;
+  justification: string;
+  submittedAt: Date;
+  status: 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+}
+
