@@ -3,14 +3,20 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Camera, Upload, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { visionAnalysisService } from '@/services/ai/VisionAnalysisService';
+import { scheduleService } from '@/services/schedule/ScheduleService';
+import { riskEngineService } from '@/services/risk/RiskEngineService';
+import { auditService } from '@/services/audit/AuditService';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useNotificationStore } from '@/store/useNotificationStore';
 
 export default function CapturePage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { addNotification } = useNotificationStore();
   const [image, setImage] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -34,6 +40,14 @@ export default function CapturePage() {
     try {
       // Using 'act-3' for demo purposes to trigger the critical delay scenario
       const analysis = await visionAnalysisService.analyzePhoto('mock-url', 'act-3');
+
+      auditService.logEvent({
+        userId: user?.id || 'system',
+        action: 'AI_ESTIMATION',
+        entityId: 'act-3',
+        details: `AI estimated ${analysis.estimatedProgress}% completion.`,
+      });
+
       setResult(analysis);
       setStep('result');
     } catch (error) {
@@ -41,6 +55,62 @@ export default function CapturePage() {
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const handleConfirmSubmit = async (verifiedProgress: number) => {
+    const activityId = 'act-3';
+
+    // 1. Update Schedule
+    await scheduleService.updateActivityProgress(activityId, verifiedProgress);
+
+    // 2. Log verification
+    auditService.logEvent({
+      userId: user?.id || 'system',
+      action: 'VERIFY_PROGRESS',
+      entityId: activityId,
+      details: `Engineer verified progress as ${verifiedProgress}%.`,
+    });
+
+    // 3. Calculate Risk
+    const activities = await scheduleService.getActivitiesForProject('proj-1');
+    const activity = activities.find(a => a.id === activityId)!;
+    const dependencies = await scheduleService.getDependenciesForProject('proj-1');
+
+    const risk = riskEngineService.calculateRisk(activity, {
+      activityId,
+      estimatedPercent: verifiedProgress,
+      confidenceScore: 1,
+      source: 'MANUAL',
+      timestamp: new Date(),
+    });
+
+    // 4. Log risk change
+    auditService.logEvent({
+      userId: 'system',
+      action: 'STATUS_CHANGE',
+      entityId: activityId,
+      details: `Risk status changed to ${risk.level}. ${risk.trigger}`,
+    });
+
+    // 5. Trigger Notification if Critical
+    if (risk.level === 'CRITICAL') {
+      addNotification({
+        userId: 'gov-1',
+        title: 'CRITICAL DELAY DETECTED',
+        message: `Activity ${activity.name} is now critical. Downstream impact likely.`,
+        priority: 'URGENT',
+        read: false,
+      });
+
+      auditService.logEvent({
+        userId: 'system',
+        action: 'NOTIFICATION_SENT',
+        entityId: activityId,
+        details: 'Urgent alert sent to Government Official.',
+      });
+    }
+
+    router.push('/engineer');
   };
 
   return (
@@ -64,13 +134,13 @@ export default function CapturePage() {
                 <p className="text-sm text-zinc-500">Take a photo or upload an image from your gallery</p>
               </div>
               <div className="flex gap-3">
-                <Button asChild>
-                  <label className="cursor-pointer">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Image
-                    <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                  </label>
-                </Button>
+                <label
+                  className={cn(buttonVariants({ variant: 'default' }), "cursor-pointer flex items-center justify-center gap-2")}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Image
+                  <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                </label>
                 <Button variant="outline" className="gap-2">
                   <Camera className="w-4 h-4 mr-2" />
                   Use Camera
@@ -171,6 +241,7 @@ export default function CapturePage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
+                    id="verified-progress"
                     defaultValue={result.estimatedProgress}
                     className="w-20 p-2 border rounded text-center font-bold"
                   />
@@ -179,7 +250,15 @@ export default function CapturePage() {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setStep('upload')}>Retake Photo</Button>
-                <Button className="flex-1" onClick={() => router.push('/engineer')}>Confirm & Submit</Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    const input = document.getElementById('verified-progress') as HTMLInputElement;
+                    handleConfirmSubmit(Number(input.value));
+                  }}
+                >
+                  Confirm & Submit
+                </Button>
               </div>
             </CardContent>
           </Card>

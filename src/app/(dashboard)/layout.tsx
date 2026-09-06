@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
-import { LayoutDashboard, LogOut, Menu, User, Bell } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, User, Bell, Camera, FileCheck, ShieldAlert, ListChecks, MessageSquare, HardHat, Construction, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -35,11 +35,67 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-          <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push(`/dashboard`)}>
+          <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push(
+            user.role === 'SITE_ENGINEER' ? '/engineer' :
+            user.role === 'CONTRACTOR' ? '/contractor' :
+            user.role === 'GOV_OFFICIAL' ? '/official' :
+            '/public'
+          )}>
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
           </Button>
-          {/* Role-specific links will be added here */}
+
+          {user.role === 'SITE_ENGINEER' && (
+            <>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/engineer')}>
+                <HardHat className="w-4 h-4" />
+                Field Work
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/engineer/capture')}>
+                <Camera className="w-4 h-4" />
+                Capture Evidence
+              </Button>
+            </>
+          )}
+
+          {user.role === 'CONTRACTOR' && (
+            <>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/contractor')}>
+                <Construction className="w-4 h-4" />
+                My Activities
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3">
+                <FileCheck className="w-4 h-4" />
+                Recovery Plans
+              </Button>
+            </>
+          )}
+
+          {user.role === 'GOV_OFFICIAL' && (
+            <>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/official/approvals')}>
+                <ShieldCheck className="w-4 h-4" />
+                Approvals
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/official/audit')}>
+                <ListChecks className="w-4 h-4" />
+                System Audit
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/official/grievances')}>
+                <MessageSquare className="w-4 h-4" />
+                Grievances
+              </Button>
+            </>
+          )}
+
+          {user.role === 'CITIZEN' && (
+            <>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => router.push('/public/grievance')}>
+                <MessageSquare className="w-4 h-4" />
+                Submit Grievance
+              </Button>
+            </>
+          )}
         </nav>
 
         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
@@ -68,15 +124,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <div className="flex items-center gap-4">
             <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+              <PopoverTrigger>
+                <div className="relative p-1 rounded-md hover:bg-muted transition-colors cursor-pointer">
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-zinc-950">
+                    <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-zinc-950">
                       {unreadCount}
                     </span>
                   )}
-                </Button>
+                </div>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0">
                 <div className="p-3 border-b font-medium flex justify-between items-center">

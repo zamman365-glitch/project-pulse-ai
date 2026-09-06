@@ -1,11 +1,15 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, MessageSquare, FileText } from 'lucide-react';
+import { MOCK_ACTIVITIES } from '@/lib/mock-data';
 
 export default function ContractorDashboard() {
+  const router = useRouter();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -26,23 +30,23 @@ export default function ContractorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-4 border rounded-lg flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium">Drainage Installation - Sector 4</p>
-                  <p className="text-xs text-zinc-500">Progress: 65% | Status: DELAYED</p>
+              {MOCK_ACTIVITIES.slice(2, 5).map((act) => (
+                <div key={act.id} className="p-4 border rounded-lg flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium">{act.name}</p>
+                    <p className="text-xs text-zinc-500">Progress: {act.actualPercentComplete}% | Status: {act.actualPercentComplete < act.plannedPercentComplete ? 'DELAYED' : 'ON TRACK'}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => router.push(`/contractor/activity/${act.id}`)}>
+                      Details
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-2">
+                      <MessageSquare className="w-3 h-3" />
+                      Respond
+                    </Button>
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" className="gap-2">
-                  <MessageSquare className="w-3 h-3" />
-                  Respond to Delay
-                </Button>
-              </div>
-              <div className="p-4 border rounded-lg flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium">Excavation - Phase 1</p>
-                  <p className="text-xs text-zinc-500">Progress: 92% | Status: ON TRACK</p>
-                </div>
-                <Button size="sm" variant="ghost">Details</Button>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
